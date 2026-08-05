@@ -5,7 +5,7 @@ Dark navy sidebar + terminal-style monospace KPI tiles on a light main
 canvas. Interactive, cross-filterable rebuild of the Power BI "Reviews
 Reporting Dashboard". Click a donut slice or a garage bar in Top 10 /
 Bottom 10 to cross-filter the rest of the page. Top 10 / Bottom 10 rankings
-themselves always stay fixed to the sidebar filters only.
+themselves always stay fixed to the sidebar filters (Manager & Month) only.
 
 RUN LOCALLY
     pip install -r requirements.txt
@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from groq import Groq
 
 # --------------------------------------------------------------------------
 # CONFIG
@@ -175,6 +176,32 @@ st.markdown(
         box-shadow: 0 1px 4px rgba(17,24,39,0.15); display: flex; align-items: center;
     }}
     .brand-title {{ font-size: 34px; font-weight: 800; color: {TEXT_DARK}; }}
+
+    /* CUSTOM INLINE SELECTBOX STYLING (Main Page Only) */
+    section[data-testid="stMain"] div[data-testid="stSelectbox"] {{
+        margin-top: -10px !important;
+        margin-bottom: -12px !important;
+    }}
+    section[data-testid="stMain"] div[data-baseweb="select"] {{
+        font-size: 11px !important;
+    }}
+    section[data-testid="stMain"] div[data-baseweb="select"] > div {{
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        min-height: 26px !important;
+        height: 26px !important;
+        border-radius: 6px !important;
+    }}
+    section[data-testid="stMain"] div[data-baseweb="select"] span {{
+        font-size: 11px !important;
+    }}
+    div[data-baseweb="popover"] ul[role="listbox"] li {{
+        font-size: 11px !important;
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -218,6 +245,7 @@ ICON_LOT = ICON_SVG.format('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2
 ICON_MONTH = ICON_SVG.format('<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>')
 ICON_COMMENTS = ICON_SVG.format('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>')
 ICON_RM = ICON_SVG.format('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>')
+ICON_OPS = ICON_SVG.format('<path d="M17 21v-2a4 4 0 0 0-3-3.87"></path><path d="M7 23v-2a4 4 0 0 1 3-3.87"></path><circle cx="9" cy="7" r="4"></circle>')
 
 
 def _lerp_hex(c1, c2, t):
@@ -307,6 +335,7 @@ def prep_data(df: pd.DataFrame, cache_key: str) -> pd.DataFrame:
     df["Month"] = df["Review Created Date"].dt.to_period("M").dt.to_timestamp()
     df["Month Label"] = df["Month"].dt.strftime("%b %Y")
     df["Redacted Comments"] = df["Redacted Comments"].fillna("").astype(str).str.strip()
+    df["Redacted Comments"] = df["Redacted Comments"].apply(lambda x: re.sub(r"<[^>]*>", "", _html_lib.unescape(x)))
     df["Has Comment"] = np.where(df["Redacted Comments"] != "", "Has Comment", "No Comment")
     return df
 
@@ -319,8 +348,7 @@ def monthly_lot_summary(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def build_comparison_table(df: pd.DataFrame, current_month: pd.Timestamp):
-    prior_month = current_month - pd.offsets.MonthBegin(1)
+def build_comparison_table(df: pd.DataFrame, prior_month: pd.Timestamp, current_month: pd.Timestamp):
     monthly = monthly_lot_summary(df)
     total_reviews = df.groupby("Title")["Star Rating"].size().rename("Total Reviews")
     cur = monthly[monthly["Month"] == current_month].set_index("Title")["avg_rating"].rename("Current Month Avg")
@@ -332,7 +360,7 @@ def build_comparison_table(df: pd.DataFrame, current_month: pd.Timestamp):
         np.nan,
     )
     table = table.sort_values("Total Reviews", ascending=False)
-    return table, prior_month
+    return table
 
 
 def fmt_num(v):
@@ -374,9 +402,6 @@ def load_rm_master(path: str, mtime: float) -> pd.DataFrame:
 
 
 def attach_manager_info(df: pd.DataFrame) -> pd.DataFrame:
-    """Joins Regional/Operations Manager + SP Code onto review rows by garage name.
-    Runs live every rerun, so any newly-uploaded biweekly file is matched automatically —
-    no need to update this mapping manually when new reports come in."""
     mtime = os.path.getmtime(RM_MASTER_PATH) if os.path.exists(RM_MASTER_PATH) else 0
     rm_master = load_rm_master(RM_MASTER_PATH, mtime)
     if rm_master.empty:
@@ -394,8 +419,6 @@ def attach_manager_info(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def searchable_filter(label: str, options: list, key_prefix: str, icon: str):
-    """Renders a 'Select all' checkbox plus an always-visible searchable multiselect.
-    Typing/picking specific items in the box overrides 'select all' immediately."""
     with st.sidebar.container(border=True):
         st.markdown(f'<div class="filter-title"><span class="filter-badge">{icon}</span>{label}</div>', unsafe_allow_html=True)
         all_checked = st.checkbox(f"Select all {label.lower()}", value=True, key=f"{key_prefix}_all")
@@ -490,14 +513,40 @@ with st.sidebar.container(border=True):
 all_rms = sorted(data["Regional Manager"].unique())
 rm_filter = searchable_filter("Regional Manager", all_rms, "rm", ICON_RM)
 
+all_ops = sorted(data["Operations Manager"].unique())
+ops_filter = searchable_filter("Operations Manager", all_ops, "ops", ICON_OPS)
+
+selected_month_ts = [month_label_to_ts[m] for m in month_filter_labels]
+if not selected_month_ts:
+    selected_month_ts = month_order
+
+if len(selected_month_ts) == 1:
+    current_month = selected_month_ts[0]
+    prior_month = current_month - pd.offsets.MonthBegin(1)
+    analysis_months = [prior_month, current_month]
+else:
+    prior_month = min(selected_month_ts)
+    current_month = max(selected_month_ts)
+    analysis_months = selected_month_ts
+
 base_filtered = data[
     data["Title"].isin(lot_filter)
-    & data["Month"].isin([month_label_to_ts[m] for m in month_filter_labels])
+    & data["Month"].isin(analysis_months)
     & data["Has Comment"].isin(comments_filter)
     & data["Regional Manager"].isin(rm_filter)
+    & data["Operations Manager"].isin(ops_filter)
 ].copy()
+
+movers_filtered = data[
+    data["Month"].isin(analysis_months)
+    & data["Has Comment"].isin(comments_filter)
+    & data["Regional Manager"].isin(rm_filter)
+    & data["Operations Manager"].isin(ops_filter)
+].copy()
+
 if keyword:
     base_filtered = base_filtered[base_filtered["Redacted Comments"].str.contains(keyword, case=False, na=False)]
+    movers_filtered = movers_filtered[movers_filtered["Redacted Comments"].str.contains(keyword, case=False, na=False)]
 
 if base_filtered.empty:
     st.warning("No records match the current sidebar filters.")
@@ -557,8 +606,7 @@ if sel_rating is not None:
 if sel_lot:
     filtered = filtered[filtered["Title"] == sel_lot]
 
-base_current_month = base_filtered["Month"].max()
-base_comparison, base_prior_month = build_comparison_table(base_filtered, base_current_month)
+base_comparison = build_comparison_table(movers_filtered, prior_month, current_month)
 base_movers = base_comparison.dropna(subset=["Rolling MoM Improvement %"])
 
 tab_overview, tab_detail = st.tabs(["Dashboard Overview", "All Garages — MoM Detail"])
@@ -570,8 +618,7 @@ with tab_overview:
     if filtered.empty:
         st.warning("No records match the current click selection. Use ✕ Clear above to reset.")
     else:
-        current_month = filtered["Month"].max()
-        comparison, prior_month = build_comparison_table(filtered, current_month)
+        comparison = build_comparison_table(filtered, prior_month, current_month)
         comparable = comparison.dropna(subset=["Prior Month Avg", "Current Month Avg"])
 
         total_garages = filtered[filtered["Month"] == current_month]["Title"].nunique()
@@ -672,21 +719,57 @@ with tab_overview:
             st.caption(f"vs. prior month ({pd.Timestamp(prior_month).strftime('%b %Y')}): {delta_ref:.2f}")
 
         st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Customer Comments</div>', unsafe_allow_html=True)
-        comments_df = filtered[filtered["Redacted Comments"] != ""][
-            ["Title", "Month Label", "Star Rating", "Redacted Comments"]
-        ].rename(columns={"Title": "Lot Name", "Month Label": "Month", "Redacted Comments": "Comment"})
-        comments_df = comments_df.sort_values("Month", ascending=False)
+        st.markdown('<div class="section-title" style="margin-bottom: 4px;">Customer Comments</div>', unsafe_allow_html=True)
+        
+        ctrl_left, ctrl_right = st.columns([1.2, 4.8]) 
+        
+        with ctrl_left:
+            sort_option = st.selectbox(
+                "Sort comments by",
+                options=["Month (Newest)", "Month (Oldest)", "Rating (High to Low)", "Rating (Low to High)"],
+                label_visibility="collapsed"
+            )
+            
+        comments_raw = filtered[filtered["Redacted Comments"] != ""][
+            ["Title", "Month", "Month Label", "Star Rating", "Redacted Comments"]
+        ]
+        
+        if sort_option == "Month (Newest)":
+            comments_raw = comments_raw.sort_values("Month", ascending=False)
+        elif sort_option == "Month (Oldest)":
+            comments_raw = comments_raw.sort_values("Month", ascending=True)
+        elif sort_option == "Rating (High to Low)":
+            comments_raw = comments_raw.sort_values(["Star Rating", "Month"], ascending=[False, False])
+        elif sort_option == "Rating (Low to High)":
+            comments_raw = comments_raw.sort_values(["Star Rating", "Month"], ascending=[True, False])
+            
+        comments_df = comments_raw[["Title", "Month Label", "Star Rating", "Redacted Comments"]].rename(
+            columns={"Title": "Lot Name", "Month Label": "Month", "Redacted Comments": "Comment"}
+        )
+        
+        comment_count = len(comments_df)
+
+        with ctrl_right:
+            st.markdown(
+                f'<div style="text-align: right; margin-top: -6px; margin-bottom: 0px;">'
+                f'<span style="background-color: {MIDNIGHT}; color: #F8FAFC; padding: 4px 12px; '
+                f'border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
+                f'💬 {comment_count:,} Comments</span></div>',
+                unsafe_allow_html=True
+            )
+
+        # 1. RENDER COMMENTS TABLE FIRST
         comment_rows = []
         for _, r in comments_df.iterrows():
+            clean_comment = _html_lib.escape(str(r['Comment']))
             comment_rows.append(
                 f"<tr><td>{_html_lib.escape(str(r['Lot Name']))}</td>"
                 f"<td>{_html_lib.escape(str(r['Month']))}</td>"
                 f"<td>{int(r['Star Rating'])}</td>"
-                f"<td>{_html_lib.escape(str(r['Comment']))}</td></tr>"
+                f"<td>{clean_comment}</td></tr>"
             )
         comments_html = f"""
-        <div class="comments-table-wrap">
+        <div class="comments-table-wrap" style="margin-top: -10px;">
         <table class="comments-table">
           <colgroup>
             <col style="width:20%"><col style="width:10%"><col style="width:10%"><col style="width:60%">
@@ -698,13 +781,51 @@ with tab_overview:
         """
         st.markdown(comments_html, unsafe_allow_html=True)
 
+        # 2. POSITION GROQ AI BUTTON AT THE BOTTOM RIGHT OF THE TABLE
+        st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
+        btn_col_left, btn_col_right = st.columns([3, 1.5])
+        with btn_col_right:
+            analyze_clicked = st.button("✨ Analyze Selected Comments with AI", use_container_width=True)
+
+        if analyze_clicked:
+            comments_list = comments_df["Comment"].dropna().tolist()
+            
+            if not comments_list:
+                st.warning("No comments available to analyze.")
+            else:
+                with st.spinner("Analyzing comments with Groq..."):
+                    text_to_analyze = "\n- ".join(comments_list[:100])
+                    
+                    prompt = f"""
+                    You are an expert operations analyst for a parking garage company. 
+                    Based ONLY on the following customer review comments, provide:
+                    1. Top 3 common operational issues or complaints.
+                    2. Top positive highlights or themes.
+                    3. Actionable recommendations for the Operations Manager.
+                    
+                    Comments:
+                    - {text_to_analyze}
+                    """
+                    
+                    try:
+                        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                        
+                        chat_completion = client.chat.completions.create(
+                            messages=[{"role": "user", "content": prompt}],
+                            model="llama-3.1-8b-instant",
+                        )
+                        
+                        st.info("### 🤖 AI Comment Analysis\n" + chat_completion.choices[0].message.content)
+                    except Exception as e:
+                        st.error(f"Failed to connect to the AI. Make sure you set GROQ_API_KEY in `.streamlit/secrets.toml`. Error: {e}")
+
     st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
     st.markdown(
         f'<div class="section-title">Garage Movers: '
-        f'{pd.Timestamp(base_prior_month).strftime("%b %Y")} → {pd.Timestamp(base_current_month).strftime("%b %Y")}</div>',
+        f'{pd.Timestamp(prior_month).strftime("%b %Y")} → {pd.Timestamp(current_month).strftime("%b %Y")}</div>',
         unsafe_allow_html=True,
     )
-    st.caption("Fixed to sidebar filters only. Click a bar to cross-filter everything above by that garage.")
+    st.caption("Fixed to sidebar Manager & Month filters. Click a bar to cross-filter everything above by that garage.")
     r3c1, r3c2 = st.columns(2)
 
     def movers_chart(df_subset, color, key):
@@ -763,8 +884,7 @@ with tab_detail:
     if filtered.empty:
         st.warning("No records match the current click selection. Use ✕ Clear above to reset.")
     else:
-        current_month = filtered["Month"].max()
-        comparison, prior_month = build_comparison_table(filtered, current_month)
+        comparison = build_comparison_table(filtered, prior_month, current_month)
         st.caption(
             f"Comparing **{pd.Timestamp(prior_month).strftime('%b %Y')}** (prior) vs "
             f"**{pd.Timestamp(current_month).strftime('%b %Y')}** (current), based on sidebar + click filters."
