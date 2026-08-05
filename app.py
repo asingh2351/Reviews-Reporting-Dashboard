@@ -179,24 +179,27 @@ st.markdown(
 
     /* CUSTOM INLINE SELECTBOX STYLING (Main Page Only) */
     section[data-testid="stMain"] div[data-testid="stSelectbox"] {{
-        margin-top: -6px !important;
-        margin-bottom: 0px !important;
+        margin-top: 0px !important;
+        margin-bottom: 8px !important;
     }}
     section[data-testid="stMain"] div[data-baseweb="select"] {{
         font-size: 13px !important;
     }}
     section[data-testid="stMain"] div[data-baseweb="select"] > div {{
-        padding-top: 4px !important;
-        padding-bottom: 4px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
         padding-left: 10px !important;
         padding-right: 10px !important;
-        min-height: 34px !important;
-        height: 34px !important;
+        min-height: 38px !important;
+        height: auto !important;
         border-radius: 6px !important;
+        display: flex !important;
+        align-items: center !important;
     }}
     section[data-testid="stMain"] div[data-baseweb="select"] span {{
         font-size: 13px !important;
         color: #111827 !important;
+        line-height: 1.4 !important;
     }}
     div[data-baseweb="popover"] ul[role="listbox"] li {{
         font-size: 13px !important;
@@ -726,7 +729,7 @@ with tab_overview:
         st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
         st.markdown('<div class="section-title" style="margin-bottom: 4px;">Customer Comments</div>', unsafe_allow_html=True)
         
-        ctrl_left, ctrl_right = st.columns([1.2, 4.8]) 
+        ctrl_left, ctrl_right = st.columns([1.5, 4.5]) 
         
         with ctrl_left:
             sort_option = st.selectbox(
@@ -756,8 +759,8 @@ with tab_overview:
 
         with ctrl_right:
             st.markdown(
-                f'<div style="text-align: right; margin-top: -6px; margin-bottom: 0px;">'
-                f'<span style="background-color: {MIDNIGHT}; color: #F8FAFC; padding: 4px 12px; '
+                f'<div style="text-align: right; margin-top: 0px; margin-bottom: 0px;">'
+                f'<span style="background-color: {MIDNIGHT}; color: #F8FAFC; padding: 6px 14px; '
                 f'border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
                 f'💬 {comment_count:,} Comments</span></div>',
                 unsafe_allow_html=True
@@ -774,7 +777,7 @@ with tab_overview:
                 f"<td>{clean_comment}</td></tr>"
             )
         comments_html = f"""
-        <div class="comments-table-wrap" style="margin-top: -10px;">
+        <div class="comments-table-wrap" style="margin-top: 4px;">
         <table class="comments-table">
           <colgroup>
             <col style="width:20%"><col style="width:10%"><col style="width:10%"><col style="width:60%">
