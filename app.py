@@ -181,14 +181,15 @@ st.markdown(
     .inline-sort-box div[data-testid="stSelectbox"] {{
         margin: 0 !important;
         padding: 0 !important;
+        max-width: 200px !important; /* Tightens the box width */
     }}
     .inline-sort-box div[data-baseweb="select"] > div {{
-        min-height: 38px !important;
-        height: 38px !important;
+        min-height: 36px !important;
+        height: 36px !important;
         padding-top: 0px !important;
         padding-bottom: 0px !important;
-        padding-left: 12px !important;
-        padding-right: 12px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
         border-radius: 8px !important;
         display: flex !important;
         align-items: center !important;
@@ -720,9 +721,10 @@ with tab_overview:
             st.caption(f"vs. prior month ({pd.Timestamp(prior_month).strftime('%b %Y')}): {delta_ref:.2f}")
 
         st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-title" style="margin-bottom: 4px;">Customer Comments</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title" style="margin-bottom: 8px;">Customer Comments</div>', unsafe_allow_html=True)
         
-        ctrl_left, ctrl_right = st.columns([1.5, 4.5]) 
+        # Tighter column ratio to pull the badge closer to the dropdown
+        ctrl_left, ctrl_right = st.columns([0.25, 0.75]) 
         
         with ctrl_left:
             st.markdown('<div class="inline-sort-box">', unsafe_allow_html=True)
@@ -754,7 +756,7 @@ with tab_overview:
 
         with ctrl_right:
             st.markdown(
-                f'<div style="text-align: right; margin-top: 0px; margin-bottom: 0px;">'
+                f'<div style="text-align: right; margin-top: 4px; margin-bottom: 0px;">'
                 f'<span style="background-color: {MIDNIGHT}; color: #F8FAFC; padding: 6px 14px; '
                 f'border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
                 f'💬 {comment_count:,} Comments</span></div>',
@@ -772,7 +774,7 @@ with tab_overview:
                 f"<td>{clean_comment}</td></tr>"
             )
         comments_html = f"""
-        <div class="comments-table-wrap" style="margin-top: 4px;">
+        <div class="comments-table-wrap" style="margin-top: 6px;">
         <table class="comments-table">
           <colgroup>
             <col style="width:20%"><col style="width:10%"><col style="width:10%"><col style="width:60%">
