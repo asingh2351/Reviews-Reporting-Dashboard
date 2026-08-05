@@ -181,6 +181,7 @@ st.markdown(
     section[data-testid="stMain"] div[data-testid="stSelectbox"] {{
         margin-top: 0px !important;
         margin-bottom: 8px !important;
+        max-width: 220px !important;
     }}
     section[data-testid="stMain"] div[data-baseweb="select"] {{
         font-size: 13px !important;
