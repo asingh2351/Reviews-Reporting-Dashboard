@@ -623,16 +623,16 @@ with tab_overview:
         comparable = comparison.dropna(subset=["Prior Month Avg", "Current Month Avg"])
 
         total_garages = filtered[filtered["Month"] == current_month]["Title"].nunique()
-        pct_decline = (comparable["Rolling MoM Improvement %"] < 0).mean() * 100 if len(comparable) else 0
-        pct_positive = (comparable["Rolling MoM Improvement %"] > 0).mean() * 100 if len(comparable) else 0
+        total_declines = (comparable["Rolling MoM Improvement %"] < 0).sum()
+        total_improvements = (comparable["Rolling MoM Improvement %"] > 0).sum()
         avg_rating_overall = filtered["Star Rating"].mean()
         prior_avg_overall = filtered[filtered["Month"] == prior_month]["Star Rating"].mean()
 
         k1, k2, k3, k4 = st.columns(4)
         kpis = [
             (k1, f"Total Garages · {pd.Timestamp(current_month).strftime('%b %Y')}", f"{total_garages}", ""),
-            (k2, "% MoM Decline", f"▼ {pct_decline:.2f}%", "decline"),
-            (k3, "% MoM Positive", f"▲ {pct_positive:.2f}%", "positive"),
+            (k2, "Total Declines (MoM)", f"▼ {total_declines}", "decline"),
+            (k3, "Total Improvements (MoM)", f"▲ {total_improvements}", "positive"),
             (k4, "Avg Rating", f"{avg_rating_overall:.2f}", ""),
         ]
         for col, label, value, cls in kpis:
