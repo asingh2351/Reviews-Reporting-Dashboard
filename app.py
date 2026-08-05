@@ -729,7 +729,7 @@ with tab_overview:
         st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
         st.markdown('<div class="section-title" style="margin-bottom: 4px;">Customer Comments</div>', unsafe_allow_html=True)
         
-        ctrl_left, ctrl_right = st.columns([1.5, 4.5]) 
+        ctrl_left, ctrl_right = st.columns([0.8, 5.2]) 
         
         with ctrl_left:
             sort_option = st.selectbox(
