@@ -180,7 +180,7 @@ st.markdown(
     /* CUSTOM INLINE SELECTBOX STYLING (Main Page Only) */
     section[data-testid="stMain"] div[data-testid="stSelectbox"] {{
         margin-top: -10px !important;
-        margin-bottom: -100px !important;
+        margin-bottom: 5px !important;
     }}
     section[data-testid="stMain"] div[data-baseweb="select"] {{
         font-size: 11px !important;
