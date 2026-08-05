@@ -3,3 +3,4 @@ pandas
 numpy
 plotly
 starlette<0.40.0
+openpyxl
