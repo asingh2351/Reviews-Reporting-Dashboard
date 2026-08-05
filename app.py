@@ -336,7 +336,11 @@ def prep_data(df: pd.DataFrame, cache_key: str) -> pd.DataFrame:
     df["Month"] = df["Review Created Date"].dt.to_period("M").dt.to_timestamp()
     df["Month Label"] = df["Month"].dt.strftime("%b %Y")
     df["Redacted Comments"] = df["Redacted Comments"].fillna("").astype(str).str.strip()
-    df["Redacted Comments"] = df["Redacted Comments"].apply(lambda x: re.sub(r"<[^>]*>", "", _html_lib.unescape(x)))
+    
+    # Strip raw HTML tags and normalize newlines to prevent broken table formatting
+    df["Redacted Comments"] = df["Redacted Comments"].apply(
+        lambda x: re.sub(r"[\r\n]+", " ", re.sub(r"<[^>]*>", "", _html_lib.unescape(x))).strip()
+    )
     df["Has Comment"] = np.where(df["Redacted Comments"] != "", "Has Comment", "No Comment")
     return df
 
