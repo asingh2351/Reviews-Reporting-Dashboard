@@ -178,10 +178,12 @@ st.markdown(
     .brand-title {{ font-size: 34px; font-weight: 800; color: {TEXT_DARK}; }}
 
     /* EXPLICIT INLINE SORT CONTAINER STYLING */
+    section[data-testid="stMain"] div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {{
+        margin-bottom: -10px !important;
+    }}
     .inline-sort-box div[data-testid="stSelectbox"] {{
         margin: 0 !important;
         padding: 0 !important;
-        max-width: 200px !important; /* Tightens the box width */
     }}
     .inline-sort-box div[data-baseweb="select"] > div {{
         min-height: 36px !important;
@@ -723,10 +725,17 @@ with tab_overview:
         st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
         st.markdown('<div class="section-title" style="margin-bottom: 8px;">Customer Comments</div>', unsafe_allow_html=True)
         
-        # Tighter column ratio to pull the badge closer to the dropdown
-        ctrl_left, ctrl_right = st.columns([0.25, 0.75]) 
+        comments_raw = filtered[filtered["Redacted Comments"] != ""][
+            ["Title", "Month", "Month Label", "Star Rating", "Redacted Comments"]
+        ]
         
-        with ctrl_left:
+        comments_df = comments_raw[["Title", "Month Label", "Star Rating", "Redacted Comments"]].rename(
+            columns={"Title": "Lot Name", "Month Label": "Month", "Redacted Comments": "Comment"}
+        )
+        comment_count = len(comments_df)
+
+        c_sort, c_space, c_badge = st.columns([1.8, 3.2, 1.0])
+        with c_sort:
             st.markdown('<div class="inline-sort-box">', unsafe_allow_html=True)
             sort_option = st.selectbox(
                 "Sort comments by",
@@ -734,11 +743,16 @@ with tab_overview:
                 label_visibility="collapsed"
             )
             st.markdown('</div>', unsafe_allow_html=True)
-            
-        comments_raw = filtered[filtered["Redacted Comments"] != ""][
-            ["Title", "Month", "Month Label", "Star Rating", "Redacted Comments"]
-        ]
-        
+
+        with c_badge:
+            st.markdown(
+                f'<div style="text-align: right; padding-top: 4px;">'
+                f'<span style="background-color: {MIDNIGHT}; color: #F8FAFC; padding: 6px 14px; '
+                f'border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
+                f'💬 {comment_count:,} Comments</span></div>',
+                unsafe_allow_html=True
+            )
+
         if sort_option == "Month (Newest)":
             comments_raw = comments_raw.sort_values("Month", ascending=False)
         elif sort_option == "Month (Oldest)":
@@ -751,17 +765,6 @@ with tab_overview:
         comments_df = comments_raw[["Title", "Month Label", "Star Rating", "Redacted Comments"]].rename(
             columns={"Title": "Lot Name", "Month Label": "Month", "Redacted Comments": "Comment"}
         )
-        
-        comment_count = len(comments_df)
-
-        with ctrl_right:
-            st.markdown(
-                f'<div style="text-align: right; margin-top: 4px; margin-bottom: 0px;">'
-                f'<span style="background-color: {MIDNIGHT}; color: #F8FAFC; padding: 6px 14px; '
-                f'border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
-                f'💬 {comment_count:,} Comments</span></div>',
-                unsafe_allow_html=True
-            )
 
         # 1. RENDER COMMENTS TABLE
         comment_rows = []
