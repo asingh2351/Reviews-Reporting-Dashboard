@@ -177,35 +177,27 @@ st.markdown(
     }}
     .brand-title {{ font-size: 34px; font-weight: 800; color: {TEXT_DARK}; }}
 
-    /* CUSTOM INLINE SELECTBOX STYLING (Main Page Only) */
-    section[data-testid="stMain"] div[data-testid="stSelectbox"] {{
-        margin-top: 0px !important;
-        margin-bottom: 8px !important;
-        max-width: 220px !important;
+    /* EXPLICIT INLINE SORT CONTAINER STYLING */
+    .inline-sort-box div[data-testid="stSelectbox"] {{
+        margin: 0 !important;
+        padding: 0 !important;
     }}
-    section[data-testid="stMain"] div[data-baseweb="select"] {{
-        font-size: 13px !important;
-    }}
-    section[data-testid="stMain"] div[data-baseweb="select"] > div {{
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
-        padding-left: 10px !important;
-        padding-right: 10px !important;
+    .inline-sort-box div[data-baseweb="select"] > div {{
         min-height: 38px !important;
-        height: auto !important;
-        border-radius: 6px !important;
+        height: 38px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        border-radius: 8px !important;
         display: flex !important;
         align-items: center !important;
     }}
-    section[data-testid="stMain"] div[data-baseweb="select"] span {{
+    .inline-sort-box div[data-baseweb="select"] span {{
         font-size: 13px !important;
+        font-weight: 600 !important;
         color: #111827 !important;
-        line-height: 1.4 !important;
-    }}
-    div[data-baseweb="popover"] ul[role="listbox"] li {{
-        font-size: 13px !important;
-        padding-top: 6px !important;
-        padding-bottom: 6px !important;
+        line-height: normal !important;
     }}
     </style>
     """,
@@ -730,14 +722,16 @@ with tab_overview:
         st.markdown('<div class="kpi-spacer"></div>', unsafe_allow_html=True)
         st.markdown('<div class="section-title" style="margin-bottom: 4px;">Customer Comments</div>', unsafe_allow_html=True)
         
-        ctrl_left, ctrl_right = st.columns([0.8, 5.2]) 
+        ctrl_left, ctrl_right = st.columns([1.5, 4.5]) 
         
         with ctrl_left:
+            st.markdown('<div class="inline-sort-box">', unsafe_allow_html=True)
             sort_option = st.selectbox(
                 "Sort comments by",
                 options=["Month (Newest)", "Month (Oldest)", "Rating (High to Low)", "Rating (Low to High)"],
                 label_visibility="collapsed"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
             
         comments_raw = filtered[filtered["Redacted Comments"] != ""][
             ["Title", "Month", "Month Label", "Star Rating", "Redacted Comments"]
